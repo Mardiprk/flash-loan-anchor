@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
 declare_id!("Gf5shq1VZ67fXkfw28r4TE422Uc9JTuJqXng1mxVHwuf");
 
@@ -25,13 +25,83 @@ pub mod flash_loan {
 }
 
 #[derive(Accounts)]
-pub struct InitializePool<'info> {}
+pub struct InitializePool<'info> {
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + Pool::LEN,
+        seeds = [b"pool", token_mint.key().as_ref],
+        bump
+    )]
+    pub pool: Account<'info, Pool>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub token_mint: Account<'info, Mint>,
+
+    #[account(
+        init,
+        payer = authority,
+        token::mint = token_mint,
+        token::authority = pool,
+        seeds = [b"vault", token_mint.key().as_ref()],
+        bump
+    )]
+    pub token_vault: Account<'info, TokenAccount>,
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+    pub rent: Sysvar<'info, Rent>,
+}
 
 #[derive(Accounts)]
-pub struct DepositLiquidity<'info> {}
+pub struct DepositLiquidity<'info> {
+    #[account(
+        mut,
+        seeds = [b"pool", pool.token_mint.as_ref()],
+        bump
+    )]
+    pub pool: Account<'info, Pool>,
+    #[account]
+    pub user: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"vault", pool.token_mint.as_ref()],
+        bump
+    )]
+    pub token_vault: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        constraint = user_token_account.mint == pool.token_mint
+    )]
+    pub user_token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+}
 
 #[derive(Accounts)]
-pub struct FlashLoan<'info> {}
+pub struct FlashLoan<'info> {
+    #[account(
+        seeds = [b"pool", pool.token_mint.as_ref()],
+        bump = pool.bump
+    )]
+    pub pool: Account<'info, Pool>,
+
+    pub borrower: Signer<'info>,
+
+    #[account(
+        mut,
+        constraint = borrower_token_account.mint == pool.token_mint
+    )]
+    pub borrower_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", pool.token_mint.as_ref()],
+        bump
+    )]
+    pub token_vault: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+}
 
 #[derive(Accounts)]
 pub struct WithdrawLiquidity<'info> {}
