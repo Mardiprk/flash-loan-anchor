@@ -104,7 +104,32 @@ pub struct FlashLoan<'info> {
 }
 
 #[derive(Accounts)]
-pub struct WithdrawLiquidity<'info> {}
+pub struct WithdrawLiquidity<'info> {
+    #[account(
+        mut,
+        seeds = [b"pool", pool.token_mint.as_ref()],
+        bump = pool.bump
+    )]
+    pub pool: Account<'info, Pool>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    #[account(
+        mut,
+        constraint = authority_token_account.mint == pool.token_mint
+    )]
+    pub authority_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", pool.token_mint.as_ref()],
+        bump
+    )]
+    pub token_vault: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+}
 
 #[account]
 pub struct Pool {
