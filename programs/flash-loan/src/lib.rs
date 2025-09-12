@@ -150,6 +150,9 @@ pub enum FlashLoanError {
     #[msg("Insufficient liquidity in the pool")]
     InsufficientLiquidity,
 
+    #[msg("Invalid Amount")]
+    InvalidAmount,
+
     #[msg("Flash loan was not repaid")]
     LoanNotRepaid,
 
